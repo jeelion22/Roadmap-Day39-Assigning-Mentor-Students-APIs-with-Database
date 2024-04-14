@@ -1,0 +1,24 @@
+{
+  "name": "roadmap-day39-assigning-mentor-students-apis-with-database",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeelion22/Roadmap-Day39-Assigning-Mentor-Students-APIs-with-Database.git"
+  },
+  "author": "Jeeva Madhaiyan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jeelion22/Roadmap-Day39-Assigning-Mentor-Students-APIs-with-Database/issues"
+  },
+  "homepage": "https://github.com/jeelion22/Roadmap-Day39-Assigning-Mentor-Students-APIs-with-Database#readme",
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-validator": "^7.0.1",
+    "mongodb": "^6.5.0"
+  }
+}
