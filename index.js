@@ -188,19 +188,6 @@ app.put(
         });
       }
 
-      await mentorCollection.updateOne(
-        { mentorId: mentorId },
-        {
-          $addToSet: {
-            studentsAssigned: {
-              studentId: studentId,
-              studentName: student.studentName,
-              isCurrentStudent: true /*current student */,
-            },
-          },
-        }
-      );
-
       // if mentor assigned already
 
       if (student.isMentorAssigned) {
@@ -211,48 +198,163 @@ app.put(
 
         // console.log(prevMentorId);
 
-        await studentCollection.updateOne(
-          { studentId: studentId },
-          {
-            $set: { "mentorAssigned.$[elem].isCurrentMentor": false },
-          },
-          { arrayFilters: [{ "elem.isCurrentMentor": true }] }
+        // updating current mentor to false in student document
+
+        const isSameMentorBefore = student.mentorAssigned.filter(
+          (mentor) => mentor.mentorId === mentorId
         );
 
-        await mentorCollection.updateOne(
-          { mentorId: prevMentorId },
-          { $set: { "studentsAssigned.$[elem].isCurrentStudent": false } },
-          {
-            arrayFilters: [
-              { "elem.isCurrentStudent": true, "elem.studentId": studentId },
-            ],
-          }
-        );
+        console.log(isSameMentorBefore);
 
-        await studentCollection.updateOne(
-          { studentId: studentId },
-          {
-            $set: { currentMentorId: mentorId, prevMentorId: prevMentorId },
-            $addToSet: {
-              mentorAssigned: {
-                mentor_name: mentor.mentorName,
-                mentor_id: mentorId,
-                isCurrentMentor: true,
-              },
+        if (isSameMentorBefore.length > 0) {
+          await mentorCollection.updateOne(
+            { mentorId: mentorId },
+            {
+              $set: { "studentsAssigned.$[elem].isCurrentStudent": true },
             },
-            $setOnInsert: { dateAdded: new Date() },
-          }
-        );
+            {
+              arrayFilters: [
+                {
+                  "elem.studentId": studentId,
+                  "elem.isCurrentStudent": false,
+                },
+              ],
+            }
+          );
+
+          console.log("----------------------1");
+
+          await studentCollection.updateOne(
+            { studentId: studentId },
+            {
+              $set: { "mentorAssigned.$[elem].isCurrentMentor": true },
+            },
+            {
+              arrayFilters: [
+                {
+                  "elem.isCurrentMentor": false,
+                  "elem.mentorId": mentorId,
+                },
+              ],
+            }
+          );
+
+          console.log("----------------------2");
+
+          await studentCollection.updateOne(
+            { studentId: studentId },
+            {
+              $set: { "mentorAssigned.$[elem].isCurrentMentor": false },
+            },
+            {
+              arrayFilters: [
+                {
+                  "elem.isCurrentMentor": true,
+                  "elem.mentorId": prevMentorId,
+                },
+              ],
+            }
+          );
+
+          console.log("---------------------3");
+
+          await studentCollection.updateOne(
+            { studentId: studentId },
+            {
+              $set: { currentMentorId: mentorId, prevMentorId: prevMentorId },
+              // $addToSet: {
+              //   mentorAssigned: {
+              //     mentorName: mentor.mentorName,
+              //     mentorId: mentorId,
+              //     isCurrentMentor: true,
+              //   },
+              // },
+            }
+          );
+
+          await mentorCollection.updateOne(
+            { mentorId: prevMentorId },
+            { $set: { "studentsAssigned.$[elem].isCurrentStudent": false } },
+            {
+              arrayFilters: [
+                { "elem.studentId": studentId, "elem.isCurrentStudent": true },
+              ],
+            }
+          );
+
+          console.log("----------------------4");
+        } else {
+          await studentCollection.updateOne(
+            { studentId: studentId },
+            {
+              $set: { "mentorAssigned.$[elem].isCurrentMentor": false },
+            },
+            { arrayFilters: [{ "elem.isCurrentMentor": true }] }
+          );
+
+          // updaing the previous mentor status to false
+          await mentorCollection.updateOne(
+            { mentorId: prevMentorId },
+            { $set: { "studentsAssigned.$[elem].isCurrentStudent": false } },
+            {
+              arrayFilters: [
+                { "elem.isCurrentStudent": true, "elem.studentId": studentId },
+              ],
+            }
+          );
+
+          await studentCollection.updateOne(
+            { studentId: studentId },
+            {
+              $set: { currentMentorId: mentorId, prevMentorId: prevMentorId },
+              $addToSet: {
+                mentorAssigned: {
+                  mentorName: mentor.mentorName,
+                  mentorId: mentorId,
+                  isCurrentMentor: true,
+                },
+              },
+              $setOnInsert: { dateAdded: new Date() },
+            }
+          );
+
+          await mentorCollection.updateOne(
+            { mentorId: mentorId },
+            {
+              $addToSet: {
+                studentsAssigned: {
+                  studentId: studentId,
+                  studentName: student.studentName,
+                  isCurrentStudent: true /*current student */,
+                },
+              },
+            }
+          );
+        }
       } else {
         // if mentor is not assigned
+
+        await mentorCollection.updateOne(
+          { mentorId: mentorId },
+          {
+            $addToSet: {
+              studentsAssigned: {
+                studentId: studentId,
+                studentName: student.studentName,
+                isCurrentStudent: true /*current student */,
+              },
+            },
+          }
+        );
+
         await studentCollection.updateOne(
           { studentId: studentId },
           {
             $set: { isMentorAssigned: true, currentMentorId: mentorId },
             $addToSet: {
               mentorAssigned: {
-                mentor_name: mentor.mentorName,
-                mentor_id: mentorId,
+                mentorName: mentor.mentorName,
+                mentorId: mentorId,
                 isCurrentMentor: true,
               },
             },
@@ -340,8 +442,8 @@ app.put(
           $set: { isMentorAssigned: true, currentMentorId: mentorId },
           $addToSet: {
             mentorAssigned: {
-              mentor_name: mentor.mentorName,
-              mentor_id: mentorId,
+              mentorName: mentor.mentorName,
+              mentorId: mentorId,
               isCurrentMentor: true,
             },
           },
