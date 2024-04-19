@@ -460,6 +460,82 @@ app.put(
   }
 );
 
+app.get(
+  "/mentors/:mentorId/allstudents",
+  param("mentorId").notEmpty().isString().escape().trim(),
+  async (req, res) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    let connection;
+
+    try {
+      connection = await MongoClient.connect(URL);
+      const db = connection.db("Roadmap-Day39-Task");
+      const mentorCollection = db.collection("mentors");
+
+      const { mentorId } = req.params;
+
+      const mentor = await mentorCollection.findOne({ mentorId: mentorId });
+
+      if (!mentor) {
+        return res.status(409).json({ message: "Invalid mentor id" });
+      }
+
+      const students = mentor.studentsAssigned;
+
+      res.json({ studentsAssigned: students });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Something went wrong" });
+    } finally {
+      await connection.close();
+    }
+  }
+);
+
+app.get(
+  "/students/previousmentor/:studentId",
+  param("studentId").notEmpty().escape().trim(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+    const { studentId } = req.params;
+
+    let connection;
+
+    try {
+      connection = await MongoClient.connect(URL);
+      const db = connection.db("Roadmap-Day39-Task");
+      const studentCollection = db.collection("students");
+
+      const student = await studentCollection.findOne({ studentId: studentId });
+
+      if (!student) {
+        return res.status(409).json({ message: "Invalid student id" });
+      }
+
+      if (!student.prevMentorId) {
+        return res.status(404).json({
+          message: "No information found about previous mentor for the student",
+        });
+      }
+
+      res.json({ previousMentor: student.prevMentorId });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Something went wrong" });
+    } finally {
+      connection.close();
+    }
+  }
+);
+
 app.listen(PORT, () => {
   console.log(`server connected successfully and listens at port ${PORT}`);
 });
