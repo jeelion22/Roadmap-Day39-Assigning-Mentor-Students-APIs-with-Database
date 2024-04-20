@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { v4: uuidv4 } = require("uuid");
 const { body, validationResult, param } = require("express-validator");
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient } = require("mongodb");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,26 +12,26 @@ const URL = process.env.DB_URL;
 app.use(cors({ origin: "localhost:4000" }));
 app.use(express.json());
 
-// generate unique id for student
-let studentIdPrefix = "fsd";
-
+// creates mentor
 app.post(
   "/mentors/create",
+  // validates request body
   [
-    body("mentorName").notEmpty().isString().trim().escape(),
-    body("mentorEmail").trim().isEmail().escape(),
+    body("mentorName").notEmpty().isString().escape().trim(),
+    body("mentorEmail").notEmpty().isEmail().escape().trim(),
   ],
   async (req, res) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const data = req.body;
+
+    let connection;
+
     try {
-      const errors = validationResult(req);
-
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
-
-      const data = req.body;
-
-      const connection = await MongoClient.connect(URL);
+      connection = await MongoClient.connect(URL);
       const db = connection.db("Roadmap-Day39-Task");
       const collection = db.collection("mentors");
 
@@ -49,31 +49,36 @@ app.post(
       data.studentsAssigned = [];
 
       await collection.insertOne(data);
-      await connection.close();
 
       res.status(201).json({ message: "mentor created successfully!" });
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: "Something went wrong" });
+    } finally {
+      await connection.close();
     }
   }
 );
 
+// get all mentors
 app.get("/mentors", async (req, res) => {
+  let connection;
   try {
-    const connection = await MongoClient.connect(URL);
+    connection = await MongoClient.connect(URL);
     const db = connection.db("Roadmap-Day39-Task");
     const collection = db.collection("mentors");
 
     const mentors = await collection.find({}).toArray();
     res.json(mentors);
-    await connection.close();
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Somthing went wrong" });
+  } finally {
+    await connection.close();
   }
 });
 
+// creates students
 app.post(
   "/students/create",
   [
@@ -81,14 +86,16 @@ app.post(
     body("studentEmail").notEmpty().isEmail().trim().escape(),
   ],
   async (req, res) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+
+    let connection;
+
     try {
-      const errors = validationResult(req);
-
-      if (!errors.isEmpty()) {
-        return res.status(422).json({ errors: errors.array() });
-      }
-
-      const connection = await MongoClient.connect(URL);
+      connection = await MongoClient.connect(URL);
       const db = connection.db("Roadmap-Day39-Task");
       const collection = db.collection("students");
 
@@ -110,32 +117,33 @@ app.post(
 
       await collection.insertOne(studentData);
 
-      await connection.close();
-
       res.status(201).json({ message: "Student created successfully!" });
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: "Somthing went wrong" });
+    } finally {
+      await connection.close();
     }
   }
 );
 
-// get students lists
+// get all students
 
 app.get("/students", async (req, res) => {
+  let connection;
   try {
-    const connection = await MongoClient.connect(URL);
+    connection = await MongoClient.connect(URL);
     const db = connection.db("Roadmap-Day39-Task");
     const collection = db.collection("students");
 
     const students = await collection.find({}).toArray();
 
     res.json({ students: students });
-
-    await connection.close();
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "something went wrong" });
+  } finally {
+    await connection.close();
   }
 });
 
@@ -155,8 +163,10 @@ app.put(
 
     const { studentId, mentorId } = req.params;
 
+    let connection;
+
     try {
-      const connection = await MongoClient.connect(URL);
+      connection = await MongoClient.connect(URL);
       const db = connection.db("Roadmap-Day39-Task");
       const studentCollection = db.collection("students");
       const mentorCollection = db.collection("mentors");
@@ -222,7 +232,7 @@ app.put(
             }
           );
 
-          console.log("----------------------1");
+          // console.log("----------------------1");
 
           await studentCollection.updateOne(
             { studentId: studentId },
@@ -239,7 +249,7 @@ app.put(
             }
           );
 
-          console.log("----------------------2");
+          // console.log("----------------------2");
 
           await studentCollection.updateOne(
             { studentId: studentId },
@@ -256,7 +266,7 @@ app.put(
             }
           );
 
-          console.log("---------------------3");
+          // console.log("---------------------3");
 
           await studentCollection.updateOne(
             { studentId: studentId },
@@ -282,7 +292,7 @@ app.put(
             }
           );
 
-          console.log("----------------------4");
+          // console.log("----------------------4");
         } else {
           await studentCollection.updateOne(
             { studentId: studentId },
@@ -363,15 +373,16 @@ app.put(
         );
       }
       res.json({ message: "Assigned mentor successfully!" });
-
-      await connection.close();
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: "Something went wrong" });
+    } finally {
+      await connection.close();
     }
   }
 );
 
+// assigns a list of students to a specific mentor
 app.put(
   "/mentor/students/assign",
   [
@@ -460,6 +471,7 @@ app.put(
   }
 );
 
+// lists all students of a specified mentor
 app.get(
   "/mentors/:mentorId/allstudents",
   param("mentorId").notEmpty().isString().escape().trim(),
@@ -497,6 +509,7 @@ app.get(
   }
 );
 
+// gets previous mentor of a student
 app.get(
   "/students/previousmentor/:studentId",
   param("studentId").notEmpty().escape().trim(),
