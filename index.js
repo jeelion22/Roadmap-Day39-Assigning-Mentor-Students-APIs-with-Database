@@ -18,7 +18,8 @@ app.get("/", (req, res) => {
     message: "Welcome to mentor-student api endpoints",
     github_link:
       "https://github.com/jeelion22/Roadmap-Day39-Assigning-Mentor-Students-APIs-with-Database",
-    apis_documentation: "",
+    apis_documentation:
+      "https://documenter.getpostman.com/view/21877600/2sA3BobBs9",
   });
 });
 
