@@ -12,6 +12,16 @@ const URL = process.env.DB_URL;
 app.use(cors({ origin: "localhost:4000" }));
 app.use(express.json());
 
+// root
+app.get("/", (req, res) => {
+  res.json({
+    message: "Welcome to mentor-student api endpoints",
+    github_link:
+      "https://github.com/jeelion22/Roadmap-Day39-Assigning-Mentor-Students-APIs-with-Database",
+    apis_documentation: "",
+  });
+});
+
 // creates mentor
 app.post(
   "/mentors/create",
